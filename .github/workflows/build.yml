@@ -1,0 +1,117 @@
+name: Bouw pakketten
+
+# Maandelijks (de 3e, 04:00 UTC) en handmatig te starten.
+on:
+  schedule:
+    - cron: '0 4 3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bouw-pakketten
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - country: nl
+            extract: europe/netherlands
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        with:
+          sdk: 3.13.1
+
+      - name: osmium installeren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y osmium-tool
+
+      - name: Bestand van Geofabrik downloaden en controleren
+        run: |
+          set -euo pipefail
+          url="https://download.geofabrik.de/${{ matrix.extract }}-latest.osm.pbf"
+          ua="knooppunten-data (https://github.com/appsbeheerder/knooppunten-data)"
+          curl -sSL --retry 5 --retry-delay 15 -A "$ua" -o in.osm.pbf "$url"
+          curl -sSL --retry 5 --retry-delay 15 -A "$ua" -o in.md5 "$url.md5"
+          echo "$(cut -d' ' -f1 in.md5)  in.osm.pbf" | md5sum -c -
+
+      - name: Filteren
+        run: bash scripts/filter.sh in.osm.pbf opl
+
+      - name: Tests
+        working-directory: tool
+        run: |
+          dart pub get
+          dart test
+
+      - name: Pakketten bouwen
+        working-directory: tool
+        run: |
+          dart run bin/build.dart \
+            --opl ../opl --regions ../regions.json --out ../out \
+            --country "${{ matrix.country }}" \
+            --manifest "manifest-${{ matrix.country }}.json" \
+            --timestamp "$(cat ../opl/timestamp.txt)"
+
+      - name: Controleren
+        working-directory: tool
+        run: dart run bin/validate.dart ../out ../regions.json "manifest-${{ matrix.country }}.json"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pakketten-${{ matrix.country }}
+          path: out/
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        with:
+          sdk: 3.13.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: pakketten-*
+          path: parts
+          merge-multiple: true
+
+      - name: Manifesten samenvoegen en controleren
+        working-directory: tool
+        run: |
+          set -euo pipefail
+          dart pub get
+          dart run bin/merge_manifests.dart ../parts/manifest.json ../parts/manifest-*.json
+          dart run bin/validate.dart ../parts ../regions.json manifest.json
+
+      - name: Publiceren
+        run: |
+          set -euo pipefail
+          rm parts/manifest-*.json
+          dated="data-$(date -u +%Y-%m)"
+          for tag in data-latest "$dated"; do
+            if ! gh release view "$tag" >/dev/null 2>&1; then
+              flag="--latest=false"
+              [ "$tag" = "data-latest" ] && flag="--latest"
+              gh release create "$tag" $flag --title "$tag" \
+                --notes "Pakketten met fietsknooppunten uit OpenStreetMap-data (Geofabrik). Licentie: ODbL 1.0, © OpenStreetMap-bijdragers. Formaat: docs/FORMAT.md."
+            fi
+            gh release upload "$tag" parts/*.knp.gz parts/manifest.json --clobber
+          done

@@ -3,7 +3,9 @@
 //   dart run bin/build.dart --opl <map met rcn.opl en nodes.opl> \
 //       --regions ../regions.json --out <uitvoermap> --timestamp <ISO-datum>
 //
-// `--base-url` is de map waar de pakketten later te downloaden zijn.
+// Opties: `--country nl` bouwt alleen de regio's van dat land, `--manifest naam.json` is de
+// naam van het manifest (standaard manifest.json) en `--base-url` is de map waar de
+// pakketten later te downloaden zijn.
 
 import 'dart:convert';
 import 'dart:io';
@@ -41,7 +43,15 @@ Future<void> main(List<String> args) async {
     '${parser.skippedRelations.length} relaties overgeslagen (${sw.elapsed.inSeconds} s)',
   );
 
-  final regions = (jsonDecode(File(regionsFile).readAsStringSync()) as Map)['regions'] as List;
+  final country = opts['country'];
+  final regions = [
+    for (final r in (jsonDecode(File(regionsFile).readAsStringSync()) as Map)['regions'] as List)
+      if (country == null || (r as Map)['country'] == country) r,
+  ];
+  if (regions.isEmpty) {
+    stderr.writeln('Geen regios gevonden${country == null ? '' : ' voor land $country'}.');
+    exit(1);
+  }
   Directory(outDir).createSync(recursive: true);
   final entries = <Map<String, dynamic>>[];
   for (final r in regions.cast<Map<String, dynamic>>()) {
@@ -73,7 +83,7 @@ Future<void> main(List<String> args) async {
     'attribution': '© OpenStreetMap-bijdragers (ODbL), data via Geofabrik',
     'regions': entries,
   };
-  File('$outDir/manifest.json')
+  File('$outDir/${opts['manifest'] ?? 'manifest.json'}')
       .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(manifest));
   stdout.writeln('Klaar: ${entries.length} regio(\'s) in $outDir');
 }

@@ -25,23 +25,31 @@ het aantal knooppunten en verbindingen. Het formaat staat in [docs/FORMAT.md](do
 3. `tool/bin/build.dart` ordent de ways, koppelt de verbindingen aan de knooppunten en snijdt het
    netwerk in regio's volgens `regions.json`.
 
+### Automatisch
+
+De GitHub Action `Bouw pakketten` (`.github/workflows/build.yml`) draait elke maand op de 3e en is
+ook handmatig te starten. Per land wordt het Geofabrik-bestand gedownload en gecontroleerd (MD5),
+gefilterd en omgezet. Daarna controleert `tool/bin/validate.dart` elk pakket (SHA-256, formaat,
+aantallen, grootte). Alleen als alles klopt worden de pakketten en `manifest.json` bij de releases
+`data-latest` en `data-JJJJ-MM` gezet.
+
+De omgrenzingen in `regions.json` zijn rechthoeken. Ze zijn bewust ruim en overlappen, zodat een
+verbinding over een grens in beide pakketten staat. Voor Nederland is er een pakket `nl` (het hele
+land) en een pakket per provincie.
+
 ### Zelf bouwen (voorbeeld Utrecht)
 
 Nodig: `osmium-tool` en de Dart SDK.
 
 ```
-osmium tags-filter utrecht-latest.osm.pbf r/route=bicycle -o bic.osm.pbf
-osmium tags-filter bic.osm.pbf r/network=rcn -o rcn.osm.pbf
-osmium tags-filter utrecht-latest.osm.pbf n/rcn_ref -o nodes.osm.pbf
-osmium cat rcn.osm.pbf -f opl -o opl/rcn.opl
-osmium cat nodes.osm.pbf -f opl -o opl/nodes.opl
+bash scripts/filter.sh utrecht-latest.osm.pbf opl
 
 cd tool
 dart pub get
-dart run bin/build.dart --opl ../opl --regions ../regions.json --out ../out --timestamp 2026-10-20T20:23:47Z
+dart run bin/build.dart --opl ../opl --regions ../regions.json --out ../out --timestamp "$(cat ../opl/timestamp.txt)"
 ```
 
-De tijdstempel staat in de kop van het Geofabrik-bestand (`osmium fileinfo`).
+Voor een los bestand zonder `nl`-regio gebruik je een eigen `regions.json`.
 
 ### Testen
 

@@ -1,10 +1,83 @@
 {
   "regions": [
     {
+      "id": "nl",
+      "name": "Nederland",
+      "country": "nl",
+      "bbox": [50.70, 3.30, 53.60, 7.25],
+      "minJunctions": 2000
+    },
+    {
+      "id": "nl-drenthe",
+      "name": "Nederland - Drenthe",
+      "country": "nl",
+      "bbox": [52.58, 6.15, 53.20, 7.10]
+    },
+    {
+      "id": "nl-flevoland",
+      "name": "Nederland - Flevoland",
+      "country": "nl",
+      "bbox": [52.25, 5.17, 52.82, 5.78]
+    },
+    {
+      "id": "nl-friesland",
+      "name": "Nederland - Friesland",
+      "country": "nl",
+      "bbox": [52.77, 5.00, 53.50, 6.45]
+    },
+    {
+      "id": "nl-gelderland",
+      "name": "Nederland - Gelderland",
+      "country": "nl",
+      "bbox": [51.74, 5.05, 52.50, 6.85]
+    },
+    {
+      "id": "nl-groningen",
+      "name": "Nederland - Groningen",
+      "country": "nl",
+      "bbox": [52.95, 6.15, 53.55, 7.25]
+    },
+    {
+      "id": "nl-limburg",
+      "name": "Nederland - Limburg",
+      "country": "nl",
+      "bbox": [50.75, 5.55, 51.78, 6.25]
+    },
+    {
+      "id": "nl-noord-brabant",
+      "name": "Nederland - Noord-Brabant",
+      "country": "nl",
+      "bbox": [51.27, 4.20, 51.82, 6.05]
+    },
+    {
+      "id": "nl-noord-holland",
+      "name": "Nederland - Noord-Holland",
+      "country": "nl",
+      "bbox": [52.15, 4.50, 53.20, 5.35]
+    },
+    {
+      "id": "nl-overijssel",
+      "name": "Nederland - Overijssel",
+      "country": "nl",
+      "bbox": [52.18, 5.78, 52.88, 7.10]
+    },
+    {
       "id": "nl-utrecht",
       "name": "Nederland - Utrecht",
       "country": "nl",
       "bbox": [51.85, 4.79, 52.31, 5.63]
+    },
+    {
+      "id": "nl-zeeland",
+      "name": "Nederland - Zeeland",
+      "country": "nl",
+      "bbox": [51.18, 3.35, 51.80, 4.35]
+    },
+    {
+      "id": "nl-zuid-holland",
+      "name": "Nederland - Zuid-Holland",
+      "country": "nl",
+      "bbox": [51.65, 3.85, 52.35, 5.05]
     }
   ]
 }
