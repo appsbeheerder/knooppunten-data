@@ -214,7 +214,10 @@ KnpPackage readPackage(Object? json) {
 }
 
 String _str(Object? v, String name, {required int max}) {
-  if (v is! String || v.isEmpty || v.length > max) throw FormatException('Ongeldig veld $name.');
+  if (v is! String || v.isEmpty || v.length > max) {
+    final shown = v is String && v.length > 40 ? '${v.substring(0, 40)}...' : v;
+    throw FormatException('Ongeldig veld $name: "$shown"');
+  }
   return v;
 }
 
