@@ -57,7 +57,18 @@ Future<void> main(List<String> args) async {
   for (final r in regions.cast<Map<String, dynamic>>()) {
     final id = r['id'] as String;
     final bbox = [for (final v in r['bbox'] as List) (v as num).toDouble()];
-    final package = buildPackage(network, region: id, bbox: bbox, osmTimestamp: timestamp);
+    final skipped = <String>{};
+    final package = buildPackage(
+      network,
+      region: id,
+      bbox: bbox,
+      osmTimestamp: timestamp,
+      onSkipped: skipped.add,
+    );
+    if (skipped.isNotEmpty) {
+      stdout.writeln('  $id: verbindingen met ongeldig nummer overgeslagen: '
+          '${(skipped.toList()..sort()).take(15).join(', ')}');
+    }
     final bytes = packageToBytes(package);
     final file = '$id.knp.gz';
     File('$outDir/$file').writeAsBytesSync(bytes);

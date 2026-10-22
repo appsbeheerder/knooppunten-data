@@ -33,20 +33,34 @@ class KnpPackage {
   final String networkType;
 }
 
+/// Een geldig knooppuntnummer: 1 tot 10 letters of cijfers.
+bool isValidNumber(String n) => RegExp(r'^[A-Za-z0-9]{1,10}$').hasMatch(n);
+
 /// Bouwt het pakket voor één regio: de verbindingen die [bbox] raken en hun
 /// knooppunten. De uitvoer is deterministisch (vaste volgorde).
+///
+/// Verbindingen waarvan een nummer geen geldig knooppuntnummer is (zie [isValidNumber];
+/// in OSM staan soms namen in `rcn_ref`) worden overgeslagen en aan [onSkipped] gemeld.
 Map<String, dynamic> buildPackage(
   CycleNetwork network, {
   required String region,
   required List<double> bbox,
   required String osmTimestamp,
   String networkType = 'rcn',
+  void Function(String number)? onSkipped,
 }) {
   assert(bbox.length == 4);
   final connections = <Connection>{};
+  final dropped = <Connection>{};
   for (final j in network.junctions.values) {
     for (final c in network.connectionsAt(j.id)) {
-      if (_touches(c, bbox)) connections.add(c);
+      if (!_touches(c, bbox)) continue;
+      final bad = [c.fromNumber, c.toNumber].where((n) => !isValidNumber(n));
+      if (bad.isNotEmpty) {
+        if (dropped.add(c)) onSkipped?.call(bad.first);
+        continue;
+      }
+      connections.add(c);
     }
   }
   final encoded = [
@@ -170,7 +184,7 @@ KnpPackage readPackage(Object? json) {
     if (id is! int) throw const FormatException('Ongeldig knooppunt-id.');
     junctions.add(Junction(
       id: id,
-      number: _str(j[1], 'number', max: 10),
+      number: _number(j[1]),
       location: GeoPoint(_num(j[2], 90), _num(j[3], 180)),
     ));
   }
@@ -199,8 +213,8 @@ KnpPackage readPackage(Object? json) {
     connections.add(Connection(
       fromId: from,
       toId: to,
-      fromNumber: _str(c[2], 'number', max: 10),
-      toNumber: _str(c[3], 'number', max: 10),
+      fromNumber: _number(c[2]),
+      toNumber: _number(c[3]),
       segments: segments,
     ));
   }
@@ -217,6 +231,13 @@ String _str(Object? v, String name, {required int max}) {
   if (v is! String || v.isEmpty || v.length > max) {
     final shown = v is String && v.length > 40 ? '${v.substring(0, 40)}...' : v;
     throw FormatException('Ongeldig veld $name: "$shown"');
+  }
+  return v;
+}
+
+String _number(Object? v) {
+  if (v is! String || !isValidNumber(v)) {
+    throw FormatException('Ongeldig knooppuntnummer: "${v is String && v.length > 40 ? v.substring(0, 40) : v}"');
   }
   return v;
 }

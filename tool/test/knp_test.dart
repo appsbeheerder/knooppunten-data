@@ -5,7 +5,9 @@ import 'package:knooppunten_tool/knp.dart';
 import 'package:knooppunten_tool/opl.dart';
 import 'package:knooppunten_tool/polyline.dart';
 import 'package:knooppunten_tool/src/data/osm_network_parser.dart';
+import 'package:knooppunten_tool/src/domain/connection.dart';
 import 'package:knooppunten_tool/src/domain/cycle_network.dart';
+import 'package:knooppunten_tool/src/domain/junction.dart';
 import 'package:knooppunten_tool/src/domain/geo_point.dart';
 import 'package:knooppunten_tool/src/domain/route_engine.dart';
 import 'package:test/test.dart';
@@ -90,6 +92,27 @@ void main() {
       String make() => jsonEncode(buildPackage(n,
           region: 'test', bbox: [51.9, 4.9, 52.1, 5.1], osmTimestamp: 't'));
       expect(make(), make());
+    });
+
+    test('verbindingen met een naam als nummer worden overgeslagen en gemeld', () {
+      const a = GeoPoint(52.0, 5.0), b = GeoPoint(52.0, 5.01), c = GeoPoint(52.0, 5.02);
+      Connection conn(int x, int y, String nx, String ny, GeoPoint p, GeoPoint q) => Connection(
+          fromId: x, toId: y, fromNumber: nx, toNumber: ny, segments: [[p, q]]);
+      final n = CycleNetwork(
+        junctions: [
+          const Junction(id: 1, number: '01', location: a),
+          const Junction(id: 2, number: '02', location: b),
+          const Junction(id: 3, number: 'GrootStokkert', location: c),
+        ],
+        connections: [conn(1, 2, '01', '02', a, b), conn(2, 3, '02', 'GrootStokkert', b, c)],
+      );
+      final skipped = <String>[];
+      final pkg = buildPackage(n,
+          region: 'x', bbox: [51, 4, 53, 6], osmTimestamp: 't', onSkipped: skipped.add);
+      expect((pkg['connections'] as List).length, 1);
+      expect((pkg['junctions'] as List).length, 2);
+      expect(skipped, ['GrootStokkert']);
+      expect(readPackage(pkg).network.junctions.length, 2);
     });
 
     test('een regio buiten het netwerk is leeg', () async {
