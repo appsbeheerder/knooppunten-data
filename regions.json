@@ -1,0 +1,10 @@
+{
+  "regions": [
+    {
+      "id": "nl-utrecht",
+      "name": "Nederland - Utrecht",
+      "country": "nl",
+      "bbox": [51.85, 4.79, 52.31, 5.63]
+    }
+  ]
+}

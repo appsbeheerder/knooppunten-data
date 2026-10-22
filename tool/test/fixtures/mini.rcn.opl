@@ -1,0 +1,9 @@
+n1 v1 dV c0 t2020-01-01T00:00:00Z i0 u Tnetwork:type=node_network,rcn_ref=01 x5.0 y52.0
+n11 v1 dV c0 t2020-01-01T00:00:00Z i0 u T x5.005 y52.0
+n2 v1 dV c0 t2020-01-01T00:00:00Z i0 u Tnetwork:type=node_network,rcn_ref=02 x5.01 y52.0
+n3 v1 dV c0 t2020-01-01T00:00:00Z i0 u Tnetwork:type=node_network,rcn_ref=03 x5.01 y52.01
+w10 v1 dV c0 t2020-01-01T00:00:00Z i0 u Thighway=cycleway Nn1,n11,n2
+w11 v1 dV c0 t2020-01-01T00:00:00Z i0 u Thighway=cycleway Nn2,n3
+r100 v1 dV c0 t2020-01-01T00:00:00Z i0 u Tnetwork=rcn,ref=01-02,route=bicycle,type=route Mw10@forward
+r101 v1 dV c0 t2020-01-01T00:00:00Z i0 u Tnetwork=rcn,ref=02-03,route=bicycle,type=route Mw11@
+r102 v1 dV c0 t2020-01-01T00:00:00Z i0 u Tname=Themaroute%2c%20geen%20knooppunten,network=rcn,ref=FR,route=bicycle,type=route Mw10@
