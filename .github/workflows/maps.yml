@@ -1,0 +1,51 @@
+name: Bouw kaartpakketten
+
+# Maandelijks (de 5e, 04:00 UTC) en handmatig te starten.
+on:
+  schedule:
+    - cron: '0 4 5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bouw-kaarten
+  cancel-in-progress: false
+
+jobs:
+  maps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PMTILES_VERSION: 1.31.2
+      PMTILES_SHA256: 3ed7dbf4ec2e6dfe5e25b6f70d1ffc932729f93c86db353bf514dd71010a312f
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: pmtiles-programma ophalen en controleren
+        run: |
+          set -euo pipefail
+          curl -sSL --retry 5 --retry-delay 15 -o pmtiles.tgz \
+            "https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/go-pmtiles_${PMTILES_VERSION}_Linux_x86_64.tar.gz"
+          echo "${PMTILES_SHA256}  pmtiles.tgz" | sha256sum -c -
+          mkdir pm && tar -xzf pmtiles.tgz -C pm pmtiles
+
+      - name: Kaartpakketten maken
+        run: bash scripts/maps.sh pm/pmtiles maps-out
+
+      - name: Publiceren
+        run: |
+          set -euo pipefail
+          dated="maps-$(date -u +%Y-%m)"
+          for tag in maps-latest "$dated"; do
+            if ! gh release view "$tag" >/dev/null 2>&1; then
+              flag="--latest=false"
+              gh release create "$tag" $flag --title "$tag" \
+                --notes "Vectorkaarten (PMTiles) per regio uit de Protomaps-basiskaart. Licentie: ODbL 1.0 (Produced Work), © OpenStreetMap-bijdragers; basiskaart Protomaps."
+            fi
+            gh release upload "$tag" maps-out/*.pmtiles maps-out/maps-manifest.json --clobber
+          done
